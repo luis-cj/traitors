@@ -13,8 +13,8 @@ window.CONFIG = {
   VIDEOS: [
     // { who: "Luis", youtubeId: "dQw4w9WgXcQ" },
 	// { who: "Zu", youtubeId: "dQw4w9WgXcQ" },
-	 { who: "Jesús", youtubeId: "IFGJ0sEAhgI" }
-	// { who: "Judit", youtubeId: "dQw4w9WgXcQ" },
+	 { who: "Jesús", youtubeId: "IFGJ0sEAhgI" },
+	{ who: "Judit", youtubeId: "oPkozDx6zF8" }
 	// { who: "Alice", youtubeId: "dQw4w9WgXcQ" },
 	// { who: "Justo", youtubeId: "dQw4w9WgXcQ" },
 	// { who: "Owen", youtubeId: "dQw4w9WgXcQ" },
