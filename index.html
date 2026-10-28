@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>The Traitors</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>The Traitors</h1>
+    <nav id="nav" hidden>
+      <button data-tab="game" class="active">Game</button>
+      <button data-tab="videos">Videos</button>
+    </nav>
+  </header>
+
+  <main id="app"><p class="muted">Loading…</p></main>
+
+  <!-- floating "hold to see my role" button, shown once roles exist -->
+  <button id="peek" hidden>Hold to see my role</button>
+
+  <div id="roleCard" class="overlay" hidden></div>
+  <div id="roulette" class="overlay" hidden></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
