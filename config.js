@@ -7,10 +7,19 @@ window.CONFIG = {
   // SHA-256 of the videos-tab password. Generate with:
   //   echo -n "yourpassword" | shasum -a 256
   // This is only a speed bump, not real security (see README).
-  VIDEO_PASSWORD_SHA256: "",
+  VIDEO_PASSWORD_SHA256: "03a94c06c6dc168890b4ac51fcfa1a5f77bee75cc128cc9840f13112258b2aba",
 
   // Intro videos: unlisted YouTube IDs (the part after v=).
   VIDEOS: [
     // { who: "Luis", youtubeId: "dQw4w9WgXcQ" },
+	// { who: "Zu", youtubeId: "dQw4w9WgXcQ" },
+	 { who: "Jesús", youtubeId: "IFGJ0sEAhgI" }
+	// { who: "Judit", youtubeId: "dQw4w9WgXcQ" },
+	// { who: "Alice", youtubeId: "dQw4w9WgXcQ" },
+	// { who: "Justo", youtubeId: "dQw4w9WgXcQ" },
+	// { who: "Owen", youtubeId: "dQw4w9WgXcQ" },
+	// { who: "Martyna", youtubeId: "dQw4w9WgXcQ" },
+	// { who: "Gabriela", youtubeId: "dQw4w9WgXcQ" },
+	
   ],
 };
