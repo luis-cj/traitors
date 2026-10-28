@@ -24,7 +24,11 @@
   <div id="roulette" class="overlay" hidden></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-  <script>document.write('<script src="config.js?' + Date.now() + '"><\/script>');</script>
+  <script>
+    // On localhost / a LAN address, use the throwaway test project; on the live site, the real one.
+    var local = location.hostname === 'localhost' || /^\d+\.\d+\.\d+\.\d+$/.test(location.hostname);
+    document.write('<script src="' + (local ? 'config.test.js' : 'config.js') + '?' + Date.now() + '"><\/script>');
+  </script>
   <script src="app.js"></script>
 </body>
 </html>
