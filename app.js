@@ -148,7 +148,7 @@ async function sha256(text) {
 function renderVideos(app) {
   if (sessionStorage.getItem("videos_ok") !== "1") {
     app.innerHTML = `<div class="card"><h2>Videos</h2><p class="muted">Password needed.</p>
-      <input id="vpass" type="password" placeholder="Password"><button class="primary" data-act="unlock">Unlock</button></div>`;
+      <input id="vpass" type="password" placeholder="Password" autocapitalize="off" autocomplete="off" autocorrect="off"><button class="primary" data-act="unlock">Unlock</button></div>`;
     return;
   }
   const vids = CONFIG.VIDEOS.length ? CONFIG.VIDEOS : [];
@@ -198,7 +198,7 @@ document.addEventListener("click", async (e) => {
       return call(b.dataset.fn);
     case "closeRoulette": $("#roulette").hidden = true; return;
     case "unlock": {
-      const h = await sha256($("#vpass").value);
+      const h = await sha256($("#vpass").value.trim());
       if (h === CONFIG.VIDEO_PASSWORD_SHA256) { sessionStorage.setItem("videos_ok", "1"); lastKey = ""; render(); }
       else alert("Wrong password");
     }
