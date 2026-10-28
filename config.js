@@ -14,9 +14,9 @@ window.CONFIG = {
     // { who: "Luis", youtubeId: "dQw4w9WgXcQ" },
 	// { who: "Zu", youtubeId: "dQw4w9WgXcQ" },
 	 { who: "Jesús", youtubeId: "IFGJ0sEAhgI" },
-	{ who: "Judit", youtubeId: "oPkozDx6zF8" }
-	// { who: "Alice", youtubeId: "dQw4w9WgXcQ" },
-	// { who: "Justo", youtubeId: "dQw4w9WgXcQ" },
+	{ who: "Judit", youtubeId: "oPkozDx6zF8" },
+	{ who: "Alice", youtubeId: "9Qgna0iuxFQ" },
+	{ who: "Justo", youtubeId: "M2h-9iig97w" }
 	// { who: "Owen", youtubeId: "dQw4w9WgXcQ" },
 	// { who: "Martyna", youtubeId: "dQw4w9WgXcQ" },
 	// { who: "Gabriela", youtubeId: "dQw4w9WgXcQ" },
