@@ -53,13 +53,3 @@ input { width: 100%; padding: 14px; font: inherit; border-radius: 10px; border: 
 @keyframes spin { to { transform: rotate(360deg); } }
 .tally { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--line); }
 .video { aspect-ratio: 16 / 9; width: 100%; border: 0; border-radius: 10px; margin-top: 8px; }
-
-/* videos tab: 3-column thumbnail matrix (a lone last video is centred); tap opens a large player */
-main.wide { max-width: 900px; }
-.video-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.video-grid .thumb:last-child:nth-child(3n+1) { grid-column: 2; }
-.thumb { padding: 0; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; color: var(--text); font: inherit; text-align: center; }
-.thumb-img { display: block; aspect-ratio: 16 / 9; background-size: cover; background-position: center; position: relative; }
-.thumb-img::after { content: "\25B6"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1.6rem; text-shadow: 0 1px 6px rgba(0,0,0,.8); background: rgba(0,0,0,.25); }
-.thumb-name { display: block; padding: 6px 4px; font-size: .9rem; }
-.player { width: min(900px, 100%); aspect-ratio: 16 / 9; border: 0; border-radius: 10px; }
