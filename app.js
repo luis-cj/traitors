@@ -8,6 +8,18 @@ const store = {
 
 let state = null, lastKey = "", tab = "game";
 
+// Calls a database function; if the browser has lost its session (permission denied),
+// starts a fresh anonymous session and retries once.
+async function rpc(fn, args) {
+  let res = await sb.rpc(fn, args);
+  if (res.error && res.error.code === "42501") {
+    await sb.auth.signOut({ scope: "local" });
+    const { error } = await sb.auth.signInAnonymously();
+    if (!error) res = await sb.rpc(fn, args);
+  }
+  return res;
+}
+
 // ---------- boot / polling ----------
 
 async function init() {
@@ -21,7 +33,7 @@ async function init() {
 }
 
 async function refresh() {
-  const { data, error } = await sb.rpc("get_state");
+  const { data, error } = await rpc("get_state");
   if (error) return;
   state = data;
   const key = JSON.stringify(state) + tab;
@@ -31,7 +43,7 @@ async function refresh() {
 }
 
 async function call(fn, args) {
-  const { error } = await sb.rpc(fn, args);
+  const { error } = await rpc(fn, args);
   if (error) alert(error.message);
   lastKey = "";
   await refresh();
@@ -188,7 +200,7 @@ document.addEventListener("click", async (e) => {
 
   switch (b.dataset.act) {
     case "login": {
-      const { error } = await sb.rpc("claim_player", { p_code: $("#code").value });
+      const { error } = await rpc("claim_player", { p_code: $("#code").value });
       if (error) return alert(error.message);
       lastKey = ""; return refresh();
     }
