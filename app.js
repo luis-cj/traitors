@@ -61,7 +61,7 @@ function render() {
 function renderLogin(app) {
   app.innerHTML = `
     <div class="card">
-      <h2>Who goes there?</h2>
+      <h2>Who are you?</h2>
       <p class="muted">Enter your personal code.</p>
       <input id="code" placeholder="Code" autocapitalize="off" autocomplete="off">
       <button class="primary" data-act="login">Enter</button>
