@@ -42,6 +42,7 @@ async function call(fn, args) {
 function render() {
   const app = $("#app");
   const logged = state && !state.error;
+  app.classList.toggle("wide", Boolean(logged) && tab === "videos");
   $("#nav").hidden = !logged;
   $("#peek").hidden = !(logged && state.my_role);
   document.querySelectorAll("nav button").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
@@ -151,11 +152,25 @@ function renderVideos(app) {
       <input id="vpass" type="password" placeholder="Password" autocapitalize="off" autocomplete="off" autocorrect="off"><button class="primary" data-act="unlock">Unlock</button></div>`;
     return;
   }
-  const vids = CONFIG.VIDEOS.length ? CONFIG.VIDEOS : [];
+  const vids = CONFIG.VIDEOS || [];
   app.innerHTML = vids.length
-    ? vids.map((v) => `<div class="card"><b>${esc(v.who)}</b><iframe class="video" src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(v.youtubeId)}" allowfullscreen></iframe></div>`).join("")
+    ? `<p class="muted" style="text-align:center">Tap a video to watch.</p><div class="video-grid">${vids.map((v) => {
+        const id = encodeURIComponent(v.youtubeId);
+        return `<button class="thumb" data-act="playVideo" data-id="${id}" data-who="${esc(v.who)}">
+          <span class="thumb-img" style="background-image:url('https://i.ytimg.com/vi/${id}/hqdefault.jpg')"></span>
+          <span class="thumb-name">${esc(v.who)}</span></button>`;
+      }).join("")}</div>`
     : `<div class="card muted">No videos yet.</div>`;
 }
+
+function openVideo(id, who) {
+  const el = $("#videoModal");
+  el.innerHTML = `<b style="margin-bottom:12px">${esc(who)}</b>
+    <iframe class="player" src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0" allow="autoplay; fullscreen" allowfullscreen></iframe>
+    <button class="primary" data-act="closeVideo" style="max-width:320px;margin-top:16px">Close</button>`;
+  el.hidden = false;
+}
+function closeVideo() { const el = $("#videoModal"); el.hidden = true; el.innerHTML = ""; }
 
 // ---------- roulette animation (cosmetic only: every phone shows the same thing) ----------
 
@@ -197,6 +212,8 @@ document.addEventListener("click", async (e) => {
       if (b.dataset.confirm && !confirm(b.dataset.confirm)) return;
       return call(b.dataset.fn);
     case "closeRoulette": $("#roulette").hidden = true; return;
+    case "playVideo": return openVideo(b.dataset.id, b.dataset.who);
+    case "closeVideo": return closeVideo();
     case "unlock": {
       const h = await sha256($("#vpass").value.trim());
       if (h === CONFIG.VIDEO_PASSWORD_SHA256) { sessionStorage.setItem("videos_ok", "1"); lastKey = ""; render(); }
