@@ -17,7 +17,7 @@ window.CONFIG = {
 	{ who: "Judit", youtubeId: "oPkozDx6zF8", description: "Luis says Judit forgot to mention that she always remembers to make food for you when you arrive late from the airport" },
 	{ who: "Alice", youtubeId: "9Qgna0iuxFQ", description: "Luis says Alice forgot to pancakes are life (or death situation)" },
 	{ who: "Justo", youtubeId: "M2h-9iig97w", description: "Luis says that Justo forgot to mention he has no mercy on the tennis court" },
-	// { who: "Owen", youtubeId: "dQw4w9WgXcQ" },
+	{ who: "Owen", youtubeId: "DowBIEU-F6c", description: "Luis says Owen forgot to mention that he used to play badminton professionally and is quite competitive"  },
 	// { who: "Martyna", youtubeId: "dQw4w9WgXcQ" },
 	{ who: "Gabriela", youtubeId: "HdyX_q53xFY", description: "Luis says Gabriela forgot to mention she cannot survive without matcha and can become dangerous" }
   ],
