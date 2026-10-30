@@ -1,6 +1,6 @@
 # The Traitors: game-night tool
 
-Static front end (GitHub Pages) + Supabase (Postgres) for the secret parts. 10 players, 2 traitors picked by a server-side roulette (couples may both be picked; Eric is always faithful), Zu as game master.
+Static front end (GitHub Pages) + Supabase (Postgres) for the secret parts. 10 players, 3 traitors picked by a server-side roulette (couples may both be picked; Eric and Martyna are always faithful), Zu as game master.
 
 ## How it keeps secrets
 - Browsers have **no direct table access**. Every call goes through a database function that returns only what *that player* may see.
@@ -25,17 +25,17 @@ Static front end (GitHub Pages) + Supabase (Postgres) for the secret parts. 10 p
 Testing reveals roles to whoever tests. Create a **second, throwaway Supabase project**, run the schema there, point `config.js` at it, and play fake rounds in separate incognito windows. Then switch `config.js` back to the clean real project before game night.
 
 ## Rules implemented
-- Roulette: 2 traitors, uniform over all pairs of eligible players. Couples may both be picked. Players with `can_be_traitor = false` (Eric and Martyna) are never picked.
+- Roulette: 3 traitors, uniform over all groups of 3 eligible players. Couples may both be picked. Players with `can_be_traitor = false` (Eric and Martyna) are never picked.
 - **Zu picks each next step** after the reveal or any result: a banishment vote, a night, or the medics' shield. This lets you follow the weekend schedule (kills only on certain nights).
 - Banishment: all living players vote, tallies and the banished role are revealed. A tie is settled by chance.
-- Night: living traitors pick a victim (not a traitor), see each other's pick, and both must **lock in** the same one. Zu's dawn button warns if they have not agreed, and she can force it (chance decides). Zu sees a **Ready / Waiting** light that turns green once all living traitors have locked in the same victim (it never shows who or what). The same light appears for the medics' shield step.
+- Night: living traitors pick a victim (not a traitor), see each other's pick, and all must **lock in** the same one. Zu's dawn button warns if they have not agreed, and she can force it (chance decides). Zu sees a **Ready / Waiting** light that turns green once all living traitors have locked in the same victim (it never shows who or what). The same light appears for the medics' shield step.
 - **Medics:** everyone who dies, banished or murdered, sees "You are dead. You have now become a medic, a dead medic." and joins the medics.
 - **Shield step** (Zu opens it, needs at least one medic): all medics agree on **one** living person and each lock in. The shield protects that person in the **next round only** (a banishment or a murder), then it disappears.
   - A shielded murder target: "Nobody was murdered in the night. A shield protected X."
   - A shielded person with the most banishment votes: "X had the most votes, but a shield protected them. Nobody is banished."
   - If the medics do not agree, Zu can skip the shield.
   - Only medics can see who currently holds the shield.
-- **Dead traitors** are medics too, but they cannot give shields, are not counted for the medics' agreement, and cannot see the shield or the medics' picks. Instead of the medic message they see "You are dead. You have now become a traitor advisor.", and they are **advisors**: at night they can suggest a victim to their living partner. The suggestion is shown to the living traitor but counts for nothing, so only the living traitors decide.
+- **Dead traitors** are medics too, but they cannot give shields, are not counted for the medics' agreement, and cannot see the shield or the medics' picks. Instead of the medic message they see "You are dead. You have now become a traitor advisor.", and they are **advisors**: at night they can suggest a victim to their living fellow traitors. The suggestion is shown to the living traitors but counts for nothing, so only the living traitors decide.
 - Win: faithful win when no traitors are left; traitors win when they equal or outnumber the faithful.
 - "Reset game" returns to the lobby and keeps login codes.
 

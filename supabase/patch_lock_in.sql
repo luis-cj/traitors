@@ -7,7 +7,8 @@
 --  * Martyna (like Eric) can never be a traitor
 --  * Zu sees a "ready" light when the traitors / medics have all locked in
 --  * secret missions: 2 per player, dealt when the roulette spins (pool is empty until you add missions)
---  * dead traitors cannot give shields; they advise their living partner at night instead
+--  * dead traitors cannot give shields; they advise their living partners at night instead
+--  * 3 traitors instead of 2 (admin_spin picks 3)
 
 alter table votes add column if not exists locked boolean not null default false;
 alter table votes drop constraint if exists votes_kind_check;
@@ -206,7 +207,7 @@ begin
   if (select phase from game_state) <> 'lobby' then raise exception 'Roulette already spun'; end if;
   delete from roles where player_id > 0;
   insert into roles (player_id, role)
-    select p.id, case when p.id in (select id from players where can_be_traitor order by random() limit 2)
+    select p.id, case when p.id in (select id from players where can_be_traitor order by random() limit 3)
                       then 'traitor' else 'faithful' end
       from players p;
   -- deal 2 missions per player from a shuffled pool: all different when the pool has at least 20,

@@ -145,15 +145,15 @@ function agreementHtml(mates, agreeText, who) {
 function traitorNightHtml(targets) {
   const advice = (state.advisor_picks || []).filter((a) => a.pick)
     .map((a) => `<div class="tally"><span>${esc(a.name)} (dead advisor)</span><span>suggests: ${esc(a.pick)}</span></div>`).join("");
-  return `<p>Choose who to murder. Both living traitors must lock in the same victim.</p>${voteList("night", targets)}` +
-    advice + agreementHtml(state.ally_picks || [], "You agree. Wait for dawn.", "your partner");
+  return `<p>Choose who to murder. All living traitors must lock in the same victim.</p>${voteList("night", targets)}` +
+    advice + agreementHtml(state.ally_picks || [], "You agree. Wait for dawn.", "your fellow traitors");
 }
 
 // A dead traitor can only advise: a non-binding suggestion that counts for nothing in the lock-in.
 function advisorNightHtml(targets) {
   const partner = (state.ally_picks || []).map((a) => `<div class="tally"><span>${esc(a.name)}</span><span>${
     a.pick ? (a.locked ? "locked: " : "leaning: ") + esc(a.pick) : "has not chosen"}</span></div>`).join("");
-  return `<p>You are a dead traitor, now an advisor. Suggest a victim to your partner. It is only a suggestion: they decide.</p>${voteList("advise", targets)}${partner}`;
+  return `<p>You are a dead traitor, now an advisor. Suggest a victim to your fellow traitors. It is only a suggestion: they decide.</p>${voteList("advise", targets)}${partner}`;
 }
 
 function medicShieldHtml(targets) {
@@ -184,7 +184,7 @@ function gameHtml() {
   const s = state, alive = s.players.filter((p) => p.alive).map((p) => p.name);
   const deadTraitor = !s.me.alive && s.my_role === "traitor", votingMedic = !s.me.alive && s.my_role !== "traitor";
   const out = s.me.alive ? "" : deadTraitor
-    ? `<div class="card banner">You are dead. You have now become a traitor advisor.<br><small>You cannot give shields, but at night you can suggest a victim to your living partner.</small></div>`
+    ? `<div class="card banner">You are dead. You have now become a traitor advisor.<br><small>You cannot give shields, but at night you can suggest a victim to your living fellow traitors.</small></div>`
     : `<div class="card banner">You are dead. You have now become a medic, a dead medic.</div>`
     + (s.shield ? `<p class="muted">The shield currently protects: <b>${esc(s.shield)}</b> (next round only)</p>` : "");
   const hello = `<p class="muted">Playing as <b>${esc(s.me.name)}</b>${s.me.is_admin ? " · Game master" : ""}${demoName ? ` · DEMO role: <b>${esc(s.my_role || "none yet")}</b>` : ""}</p>`;
@@ -397,7 +397,7 @@ let roleOpen = false, roleTimer = null;
 
 function openRole() {
   if (!state?.my_role) return;
-  const allies = state.allies.length ? `<p>Your fellow traitor: <b>${state.allies.map(esc).join(", ")}</b></p>` : "";
+  const allies = state.allies.length ? `<p>Your fellow traitor${state.allies.length > 1 ? "s" : ""}: <b>${state.allies.map(esc).join(", ")}</b></p>` : "";
   card.innerHTML = `<div class="flip"><div class="flip-inner" id="flipInner">
       <div class="face back">?</div>
       <div class="face front"><div class="role-word ${state.my_role}">${state.my_role}</div>${allies}<p class="muted">Tap to hide</p></div>

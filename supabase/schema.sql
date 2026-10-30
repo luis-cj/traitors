@@ -314,7 +314,7 @@ begin
   if (select phase from game_state) <> 'lobby' then raise exception 'Roulette already spun'; end if;
   delete from roles where player_id > 0;
   insert into roles (player_id, role)
-    select p.id, case when p.id in (select id from players where can_be_traitor order by random() limit 2)
+    select p.id, case when p.id in (select id from players where can_be_traitor order by random() limit 3)
                       then 'traitor' else 'faithful' end
       from players p;
   -- deal 2 missions per player from a shuffled pool: all different when the pool has at least 20,
