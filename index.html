@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Traitors of Hove</title>
   <script>
-    // On localhost / a LAN address, never reuse cached files, so edits show up on a normal reload.
+    // Never reuse cached files (GitHub Pages lets browsers keep them for 10 minutes), so a new deploy shows up on a normal reload.
     var local = location.hostname === 'localhost' || /^\d+\.\d+\.\d+\.\d+$/.test(location.hostname);
-    var bust = local ? '?' + Date.now() : '';
+    var bust = '?' + Date.now();
     document.write('<link rel="stylesheet" href="style.css' + bust + '">');
   </script>
 </head>
