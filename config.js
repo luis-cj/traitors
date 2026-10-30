@@ -11,15 +11,14 @@ window.CONFIG = {
 
   // Intro videos: unlisted YouTube IDs (the part after v=).
   VIDEOS: [
-    { who: "Luis", youtubeId: "6ZIhnrR4HRw" },
-	{ who: "Zu", youtubeId: "Ix4eG5tv__8" },
-	{ who: "Jesús", youtubeId: "IFGJ0sEAhgI" },
-	{ who: "Judit", youtubeId: "oPkozDx6zF8" },
-	{ who: "Alice", youtubeId: "9Qgna0iuxFQ" },
-	{ who: "Justo", youtubeId: "M2h-9iig97w" }
+    { who: "Luis", youtubeId: "6ZIhnrR4HRw", description: "Luis is indeed an angel." },
+	{ who: "Zu", youtubeId: "Ix4eG5tv__8", description: "Luis says Zu forgot to mention she deals with spicy animals (and owners) at work" },
+	{ who: "Jesús", youtubeId: "IFGJ0sEAhgI", description: "Luis says Jesus forgot to mention corazón adiabático (sounds diabolic - but is it?)" },
+	{ who: "Judit", youtubeId: "oPkozDx6zF8", description: "Luis says Judit forgot to mention that she always remembers to make food for you when you arrive late from the airport" },
+	{ who: "Alice", youtubeId: "9Qgna0iuxFQ", description: "Luis says Alice forgot to pancakes are life (or death situation)" },
+	{ who: "Justo", youtubeId: "M2h-9iig97w", description: "Luis says that Justo forgot to mention he has no mercy on the tennis court" },
 	// { who: "Owen", youtubeId: "dQw4w9WgXcQ" },
 	// { who: "Martyna", youtubeId: "dQw4w9WgXcQ" },
-	// { who: "Gabriela", youtubeId: "dQw4w9WgXcQ" },
-	
+	{ who: "Gabriela", youtubeId: "HdyX_q53xFY", description: "Luis says Gabriela forgot to mention she cannot survive without matcha and can become dangerous" }
   ],
 };

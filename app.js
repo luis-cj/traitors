@@ -165,7 +165,7 @@ function renderVideos(app) {
   }
   const vids = CONFIG.VIDEOS.length ? CONFIG.VIDEOS : [];
   app.innerHTML = vids.length
-    ? vids.map((v) => `<div class="card"><b>${esc(v.who)}</b><iframe class="video" src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(v.youtubeId)}" allowfullscreen></iframe></div>`).join("")
+    ? vids.map((v) => `<div class="card"><b>${esc(v.who)}</b><iframe class="video" src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(v.youtubeId)}" allowfullscreen></iframe>${v.description ? `<p class="desc">${esc(v.description)}</p>` : ""}</div>`).join("")
     : `<div class="card muted">No videos yet.</div>`;
 }
 

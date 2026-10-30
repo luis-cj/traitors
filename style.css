@@ -53,3 +53,5 @@ input { width: 100%; padding: 14px; font: inherit; border-radius: 10px; border: 
 @keyframes spin { to { transform: rotate(360deg); } }
 .tally { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--line); }
 .video { aspect-ratio: 16 / 9; width: 100%; border: 0; border-radius: 10px; margin-top: 8px; }
+
+.desc { margin: 10px 0 0; color: var(--muted); white-space: pre-line; user-select: text; -webkit-user-select: text; }
