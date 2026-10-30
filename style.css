@@ -28,6 +28,8 @@ button.primary, button.choice {
 button.primary { background: var(--accent); color: #17120a; border-color: var(--accent); }
 button.choice.selected { border-color: var(--accent); background: #2b2410; }
 button.danger { background: none; border: 1px solid var(--red); color: var(--red); padding: 8px 12px; border-radius: 8px; font: inherit; }
+textarea { width: 100%; min-height: 110px; resize: vertical; padding: 14px; margin-bottom: 10px; font: inherit; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); user-select: text; -webkit-user-select: text; }
+.pumpkin-msg { margin: 0; padding: 12px 0; border-bottom: 1px solid var(--line); white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; -webkit-user-select: text; }
 input { width: 100%; padding: 14px; font: inherit; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); user-select: text; -webkit-user-select: text; }
 
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }

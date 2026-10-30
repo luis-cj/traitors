@@ -13,6 +13,7 @@ const store = {
 
 let state = null, lastKey = "", tab = "game";
 let missionsShown = false, missionsTimer = null;   // secret missions are hidden until tapped
+let pumpkinMsgs = [], pumpkinDraft = "";            // anonymous messages (the database stores no author)
 
 // Calls a database function; if the browser has lost its session (permission denied),
 // starts a fresh anonymous session and retries once.
@@ -48,6 +49,7 @@ async function refresh() {
   const { data, error } = await rpc("get_state");
   if (error) return;
   state = data;
+  if (tab === "pumpkin" && !data.error) await loadPumpkin();
   const key = JSON.stringify(state) + tab;
   if (key === lastKey) return;
   lastKey = key;
@@ -87,6 +89,7 @@ function render() {
   if (!logged) return renderLogin(app);
   if (tab === "videos") return renderVideos(app);
   if (tab === "missions") return renderMissions(app);
+  if (tab === "pumpkin") return renderPumpkin(app);
 
   if (state.phase === "reveal" && (+store.get("traitors_spin") || 0) < state.spin_id) {
     store.set("traitors_spin", state.spin_id);
@@ -268,6 +271,35 @@ function setMissionsShown(on) {
   if (tab === "missions") { lastKey = ""; render(); }
 }
 
+// ---------- pumpkin awards tab (anonymous messages: only the text is ever stored) ----------
+
+function pumpkinListHtml() {
+  return pumpkinMsgs.length
+    ? pumpkinMsgs.map((m) => `<p class="pumpkin-msg">${esc(m)}</p>`).join("")
+    : `<p class="muted">No messages yet. Be the first.</p>`;
+}
+
+function renderPumpkin(app) {
+  app.innerHTML = `<div class="card"><h2>Pumpkin Awards</h2>
+      <p>Someone looks good today, someone handled a failure at laser tag graciously, created great arguments at round table or made a particularly funny joke? Express it here anonymously.</p>
+      <p class="muted">Everyone can read the messages, but nobody can see who sent them.</p>
+      <textarea id="pumpkinText" maxlength="500" placeholder="Write your message…"></textarea>
+      <button class="primary" data-act="postPumpkin">Post anonymously</button></div>
+    <div class="card" id="pumpkinList">${pumpkinListHtml()}</div>`;
+  const box = $("#pumpkinText");
+  box.value = pumpkinDraft;
+  box.addEventListener("input", () => (pumpkinDraft = box.value));
+}
+
+async function loadPumpkin() {
+  const { data, error } = await rpc("get_pumpkin");
+  if (error || !Array.isArray(data)) return;
+  if (JSON.stringify(data) === JSON.stringify(pumpkinMsgs)) return;
+  pumpkinMsgs = data;
+  const list = $("#pumpkinList");          // update only the list, so a half-typed message is never wiped
+  if (list && tab === "pumpkin") list.innerHTML = pumpkinListHtml();
+}
+
 // ---------- videos tab (light gate: speed bump only) ----------
 
 async function sha256(text) {
@@ -317,7 +349,9 @@ document.addEventListener("click", async (e) => {
   if (b.dataset.tab) {
     tab = b.dataset.tab;
     if (tab !== "missions") { missionsShown = false; clearTimeout(missionsTimer); }
-    lastKey = ""; return render();
+    lastKey = ""; render();
+    if (tab === "pumpkin") loadPumpkin();   // show the latest messages straight away
+    return;
   }
 
   switch (b.dataset.act) {
@@ -337,6 +371,17 @@ document.addEventListener("click", async (e) => {
     case "showMissions": return setMissionsShown(true);
     case "hideMissions": return setMissionsShown(false);
     case "mission": return call("mark_mission", { p_mission: +b.dataset.id, p_done: b.checked });
+    case "postPumpkin": {
+      const text = $("#pumpkinText").value.trim();
+      if (!text) return alert("Write something first");
+      b.disabled = true;
+      const { error } = await rpc("post_pumpkin", { p_body: text });
+      b.disabled = false;
+      if (error) return alert(error.message);
+      pumpkinDraft = "";
+      $("#pumpkinText").value = "";
+      return refresh();
+    }
     case "closeRoulette": $("#roulette").hidden = true; return;
     case "unlock": {
       const h = await sha256($("#vpass").value.trim());
