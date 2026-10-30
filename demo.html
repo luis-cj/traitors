@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Demo: all players</title>
+  <style>
+    body { margin: 0; padding: 12px; background: #000; color: #eee; font: 14px system-ui, sans-serif; }
+    h1 { font-size: 16px; margin: 0 0 4px; }
+    p { margin: 0 0 12px; color: #aaa; }
+    .bar { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+    button { padding: 10px 16px; border-radius: 8px; border: 1px solid #c9a24b; background: #17120a; color: #c9a24b; font: inherit; font-weight: 600; cursor: pointer; }
+    button.danger { border-color: #c0392b; color: #ff7b6b; }
+    #msg { color: #9fd; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 10px; }
+    .cell b { display: block; margin-bottom: 4px; }
+    iframe { width: 100%; height: 640px; border: 1px solid #333; border-radius: 10px; background: #0e0c10; }
+  </style>
+</head>
+<body>
+  <h1>Demo: every player's phone at once</h1>
+  <p>Runs only on localhost or a LAN address, against the test project in config.test.js. Each frame is a separate login. Zu's frame has the game-master buttons. Frames show the player's role in a DEMO tag.</p>
+  <div class="bar">
+    <button id="restart" class="danger">Restart everything</button>
+    <button id="reload">Reload frames</button>
+    <span id="msg"></span>
+  </div>
+  <div class="grid" id="grid"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+  <script>document.write('<script src="config.test.js?' + Date.now() + '"><\/script>');</script>
+  <script>
+    var names = ["Zu", "Luis", "Alice", "Justo", "Eric", "Gabriela", "Jesus", "Judit", "Martyna", "Owen"];
+    var msg = document.getElementById("msg");
+
+    function loadFrames() {
+      var t = Date.now();   // fresh URL each time, so nothing is served from cache
+      document.getElementById("grid").innerHTML = names.map(function (n) {
+        return '<div class="cell"><b>' + n + '</b><iframe src="index.html?demo=' + encodeURIComponent(n) + '&t=' + t + '"></iframe></div>';
+      }).join("");
+    }
+
+    // Restart: Zu (the game master) resets the game to the lobby, then every frame reloads.
+    document.getElementById("restart").onclick = async function () {
+      msg.textContent = "Restarting...";
+      try {
+        // same storage key as Zu's frame, so this reuses Zu's login session
+        var sb = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY, { auth: { storageKey: "sb-demo-Zu" } });
+        var res = await sb.rpc("admin_reset");
+        if (res.error) { msg.textContent = "Reset failed: " + res.error.message; return; }
+        loadFrames();
+        msg.textContent = "Game reset to the lobby.";
+      } catch (e) { msg.textContent = "Reset failed: " + e.message; }
+    };
+    document.getElementById("reload").onclick = function () { loadFrames(); msg.textContent = ""; };
+
+    loadFrames();
+  </script>
+</body>
+</html>

@@ -55,3 +55,16 @@ input { width: 100%; padding: 14px; font: inherit; border-radius: 10px; border: 
 .video { aspect-ratio: 16 / 9; width: 100%; border: 0; border-radius: 10px; margin-top: 8px; }
 
 .desc { margin: 10px 0 0; color: var(--muted); white-space: pre-line; user-select: text; -webkit-user-select: text; }
+
+/* role card flip */
+.flip { width: 260px; height: 340px; perspective: 1000px; }
+.flip-inner { position: relative; width: 100%; height: 100%; transition: transform .5s; transform-style: preserve-3d; }
+.flip-inner.flipped { transform: rotateY(180deg); }
+.face { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px;
+  border: 2px solid var(--accent); border-radius: 16px; background: #17120a; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.face.back { font: 6rem Georgia, serif; color: var(--accent); }
+.face.front { transform: rotateY(180deg); }
+
+/* game master's "ready" light */
+.ready { margin: 12px 0 0; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); color: var(--muted); text-align: center; }
+.ready.yes { border-color: var(--green); color: #9fe0b8; background: #10241a; font-weight: 600; }

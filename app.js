@@ -1,9 +1,14 @@
-const sb = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+// Demo mode (localhost / LAN only): index.html?demo=Name logs in as that player with its own session,
+// so demo.html can show many players side by side in one browser.
+const isLocal = location.hostname === "localhost" || /^\d+\.\d+\.\d+\.\d+$/.test(location.hostname);
+const demoName = isLocal ? new URLSearchParams(location.search).get("demo") : null;
+const sb = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY,
+  demoName ? { auth: { storageKey: "sb-demo-" + demoName } } : undefined);
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const store = {
-  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
-  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+  get(k) { try { return localStorage.getItem((demoName || "") + k); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem((demoName || "") + k, v); } catch {} },
 };
 
 let state = null, lastKey = "", tab = "game";
@@ -29,6 +34,12 @@ async function init() {
     if (error) return ($("#app").innerHTML = `<p class="card">Could not start a session: ${esc(error.message)}</p>`);
   }
   await refresh();
+  const code = demoName && CONFIG.DEMO_CODES && CONFIG.DEMO_CODES[demoName];
+  if (code && state && state.error === "not_claimed") {
+    await rpc("claim_player", { p_code: code });
+    lastKey = "";
+    await refresh();
+  }
   setInterval(refresh, 2500);
 }
 
@@ -40,6 +51,20 @@ async function refresh() {
   if (key === lastKey) return;
   lastKey = key;
   render();
+}
+
+async function adminCall(fn, args) {
+  let { error } = await rpc(fn, args);
+  if (error && error.message.includes("traitors have not agreed")) {
+    if (!confirm("The traitors have not agreed yet. Force the dawn? Chance will pick the victim.")) return;
+    ({ error } = await rpc(fn, { ...args, p_force: true }));
+  } else if (error && error.message.includes("medics have not agreed")) {
+    if (!confirm("The medics have not agreed yet. Skip the shield this round?")) return;
+    ({ error } = await rpc(fn, { ...args, p_force: true }));
+  }
+  if (error) alert(error.message);
+  lastKey = "";
+  await refresh();
 }
 
 async function call(fn, args) {
@@ -95,14 +120,69 @@ function voteList(kind, targets) {
     .join("");
 }
 
+// Shows what the other group members have picked, the lock-in button and a status line.
+function agreementHtml(mates, agreeText, who) {
+  const s = state;
+  const list = mates.map((a) => `<div class="tally"><span>${esc(a.name)}</span><span>${
+    a.pick ? (a.locked ? "locked: " : "leaning: ") + esc(a.pick) : "has not chosen"}</span></div>`).join("");
+  const agree = s.my_locked && mates.every((a) => a.locked && a.pick === s.my_vote);
+  let note = "";
+  if (s.my_locked) {
+    note = agree ? agreeText
+      : mates.some((a) => a.locked && a.pick !== s.my_vote) ? "You disagree. Someone must change."
+      : `Waiting for ${who} to lock in.`;
+  }
+  const lock = s.my_vote
+    ? `<button class="primary" data-act="lock" data-lock="${!s.my_locked}">${s.my_locked ? "Locked in. Tap to change" : "Lock in " + esc(s.my_vote)}</button>` : "";
+  return `${list}${lock}${note ? `<p class="muted">${note}</p>` : ""}`;
+}
+
+function traitorNightHtml(targets) {
+  const advice = (state.advisor_picks || []).filter((a) => a.pick)
+    .map((a) => `<div class="tally"><span>${esc(a.name)} (dead advisor)</span><span>suggests: ${esc(a.pick)}</span></div>`).join("");
+  return `<p>Choose who to murder. Both living traitors must lock in the same victim.</p>${voteList("night", targets)}` +
+    advice + agreementHtml(state.ally_picks || [], "You agree. Wait for dawn.", "your partner");
+}
+
+// A dead traitor can only advise: a non-binding suggestion that counts for nothing in the lock-in.
+function advisorNightHtml(targets) {
+  const partner = (state.ally_picks || []).map((a) => `<div class="tally"><span>${esc(a.name)}</span><span>${
+    a.pick ? (a.locked ? "locked: " : "leaning: ") + esc(a.pick) : "has not chosen"}</span></div>`).join("");
+  return `<p>You are a dead traitor, now an advisor. Suggest a victim to your partner. It is only a suggestion: they decide.</p>${voteList("advise", targets)}${partner}`;
+}
+
+function medicShieldHtml(targets) {
+  return `<p>You are a medic. All medics must agree on <b>one</b> living person to shield. The shield protects them in the next round only, whether it is a banishment or a murder.</p>${voteList("shield", targets)}` +
+    agreementHtml(state.medic_picks || [], "All medics agree. Wait for the game master.", "the other medics");
+}
+
+// Zu chooses what happens next (after the reveal or any result).
+function nextBtns() {
+  if (!state.me.is_admin) return "";
+  const b = (next, label) => `<button class="primary" data-act="goto" data-next="${next}" data-confirm="${esc(label)}?">${esc(label)}</button>`;
+  return `<p class="muted" style="margin:16px 0 0">Next step:</p>` +
+    b("banish", "Open a banishment vote") + b("night", "Start a night (traitors choose)") +
+    (state.shield_medics > 0 ? b("shield", "Open the medics' shield") : "");
+}
+
+// Game master only: tells Zu whether the traitors / medics have all locked in, so she knows when to press the button.
+function readyHtml(waiting, done) {
+  if (!state.me.is_admin || typeof state.ready !== "boolean") return "";
+  return `<div class="ready ${state.ready ? "yes" : ""}">${state.ready ? "Ready: " + esc(done) : "Waiting: " + esc(waiting)}</div>`;
+}
+
 function adminBtn(label, fn) {
   return state.me.is_admin ? `<button class="primary" data-act="admin" data-fn="${fn}" data-confirm="${esc(label)}?">${esc(label)}</button>` : "";
 }
 
 function gameHtml() {
   const s = state, alive = s.players.filter((p) => p.alive).map((p) => p.name);
-  const out = s.me.alive ? "" : `<div class="card banner">You are out of the game. Watch in silence.</div>`;
-  const hello = `<p class="muted">Playing as <b>${esc(s.me.name)}</b>${s.me.is_admin ? " · Game master" : ""}</p>`;
+  const deadTraitor = !s.me.alive && s.my_role === "traitor", votingMedic = !s.me.alive && s.my_role !== "traitor";
+  const out = s.me.alive ? "" : deadTraitor
+    ? `<div class="card banner">You are dead. You have now become a traitor advisor.<br><small>You cannot give shields, but at night you can suggest a victim to your living partner.</small></div>`
+    : `<div class="card banner">You are dead. You have now become a medic, a dead medic.</div>`
+    + (s.shield ? `<p class="muted">The shield currently protects: <b>${esc(s.shield)}</b> (next round only)</p>` : "");
+  const hello = `<p class="muted">Playing as <b>${esc(s.me.name)}</b>${s.me.is_admin ? " · Game master" : ""}${demoName ? ` · DEMO role: <b>${esc(s.my_role || "none yet")}</b>` : ""}</p>`;
   let body = "";
 
   switch (s.phase) {
@@ -111,29 +191,41 @@ function gameHtml() {
         adminBtn("Spin the roulette", "admin_spin");
       break;
     case "reveal":
-      body = `<div class="card"><h2>Fates sealed</h2><p>Hold the gold button at the bottom to see your role. Keep your screen hidden.</p></div>` +
-        adminBtn("Begin night 1", "admin_advance");
+      body = `<div class="card"><h2>Fates sealed</h2><p>Tap the gold button at the bottom to flip your card and see your role. Tap again to hide it, and keep your screen hidden.</p></div>` +
+        nextBtns();
       break;
     case "night": {
       const traitor = s.my_role === "traitor" && s.me.alive;
       const targets = alive.filter((n) => n !== s.me.name && !s.allies.includes(n));
-      body = `<div class="card"><h2>Night ${s.round}</h2>` +
-        (traitor ? `<p>Choose who to murder. If you disagree, chance decides.</p>${voteList("night", targets)}` : `<p>The traitors are choosing a victim. Close your eyes.</p>`) +
-        `</div>` + adminBtn("Dawn breaks (resolve the night)", "admin_advance");
+      body = `<div class="card"><h2>Night ${s.n}</h2>` +
+        (traitor ? traitorNightHtml(targets) : deadTraitor ? advisorNightHtml(targets) : `<p>The traitors are choosing a victim. Close your eyes.</p>`) +
+        `</div>` + readyHtml("the traitors have not locked in yet.", "the traitors have locked in. You can press Dawn breaks.") +
+        adminBtn("Dawn breaks (resolve the night)", "admin_advance");
       break;
     }
     case "day":
-      body = `<div class="card"><p class="big">${esc(s.announcement)}</p></div>` + adminBtn("Open the banishment vote", "admin_advance");
+      body = `<div class="card"><p class="big">${esc(s.announcement)}</p></div>` + nextBtns();
       break;
     case "banish": {
       const vp = s.vote_progress;
-      body = `<div class="card"><h2>Banishment</h2>` +
+      body = `<div class="card"><h2>Banishment ${s.n}</h2>` +
         (s.me.alive ? `<p>Who is a traitor?</p>${voteList("banish", alive.filter((n) => n !== s.me.name))}` : `<p>The living are voting.</p>`) +
         `<p class="muted">${vp.voted} of ${vp.total} have voted</p></div>` + adminBtn("Close the vote and reveal", "admin_advance");
       break;
     }
     case "banish_result":
-      body = `<div class="card"><p class="big">${esc(s.announcement)}</p>${tallyHtml()}</div>` + adminBtn("Next night", "admin_advance");
+      body = `<div class="card"><p class="big">${esc(s.announcement)}</p>${tallyHtml()}</div>` + nextBtns();
+      break;
+    case "shield":
+      body = `<div class="card"><h2>The medics' shield</h2>` +
+        (votingMedic ? medicShieldHtml(alive) : `<p>The medics are choosing who to shield.${deadTraitor ? " You cannot take part." : ""}</p>`) +
+        `</div>` + readyHtml("the medics have not all locked in yet.", "the medics have agreed. You can lock in the shield.") +
+        adminBtn("Lock in the shield", "admin_advance");
+      break;
+    case "shield_result":
+      body = `<div class="card"><h2>The medics have decided</h2>` +
+        (votingMedic ? `<p>${s.shield ? `The shield protects <b>${esc(s.shield)}</b> in the next round.` : "No shield this round."}</p>` : `<p>The shield is set.</p>`) +
+        `</div>` + nextBtns();
       break;
     case "ended":
       body = `<div class="card"><h2>${s.winner === "traitors" ? "The traitors win" : "The faithful win"}</h2><p>${esc(s.announcement)}</p>${tallyHtml()}</div>`;
@@ -181,7 +273,7 @@ function playRoulette() {
     if (delay > 600) {
       el.querySelector(".wheel").classList.add("done");
       word.textContent = "The roulette has spoken";
-      el.insertAdjacentHTML("beforeend", `<p class="muted">Hold the gold button to see your fate.</p><button class="primary" data-act="closeRoulette">Continue</button>`);
+      el.insertAdjacentHTML("beforeend", `<p class="muted">Tap the gold button to flip your card.</p><button class="primary" data-act="closeRoulette">Continue</button>`);
       return;
     }
     word.textContent = words[i++ % 2];
@@ -207,7 +299,11 @@ document.addEventListener("click", async (e) => {
     case "vote": return call("cast_vote", { p_kind: b.dataset.kind, p_target: b.dataset.target });
     case "admin":
       if (b.dataset.confirm && !confirm(b.dataset.confirm)) return;
-      return call(b.dataset.fn);
+      return adminCall(b.dataset.fn);
+    case "goto":
+      if (b.dataset.confirm && !confirm(b.dataset.confirm)) return;
+      return adminCall("admin_goto", { p_next: b.dataset.next });
+    case "lock": return call("lock_vote", { p_lock: b.dataset.lock === "true" });
     case "closeRoulette": $("#roulette").hidden = true; return;
     case "unlock": {
       const h = await sha256($("#vpass").value.trim());
@@ -217,17 +313,35 @@ document.addEventListener("click", async (e) => {
   }
 });
 
-// hold-to-reveal role
+// tap-to-flip role card (tap again, tap the card, or wait 12s to hide it)
 const peek = $("#peek"), card = $("#roleCard");
-const showRole = () => {
+let roleOpen = false, roleTimer = null;
+
+function openRole() {
   if (!state?.my_role) return;
   const allies = state.allies.length ? `<p>Your fellow traitor: <b>${state.allies.map(esc).join(", ")}</b></p>` : "";
-  card.innerHTML = `<div class="role-word ${state.my_role}">${state.my_role}</div>${allies}`;
+  card.innerHTML = `<div class="flip"><div class="flip-inner" id="flipInner">
+      <div class="face back">?</div>
+      <div class="face front"><div class="role-word ${state.my_role}">${state.my_role}</div>${allies}<p class="muted">Tap to hide</p></div>
+    </div></div>`;
   card.hidden = false;
-};
-const hideRole = () => { card.hidden = true; card.innerHTML = ""; };
-peek.addEventListener("pointerdown", (e) => { e.preventDefault(); showRole(); });
-["pointerup", "pointerleave", "pointercancel"].forEach((ev) => peek.addEventListener(ev, hideRole));
-peek.addEventListener("contextmenu", (e) => e.preventDefault());
+  roleOpen = true;
+  peek.textContent = "Hide my role";
+  requestAnimationFrame(() => requestAnimationFrame(() => $("#flipInner")?.classList.add("flipped")));
+  clearTimeout(roleTimer);
+  roleTimer = setTimeout(closeRole, 12000);
+}
+
+function closeRole() {
+  if (!roleOpen) return;
+  roleOpen = false;
+  clearTimeout(roleTimer);
+  peek.textContent = "Show my role";
+  $("#flipInner")?.classList.remove("flipped");
+  setTimeout(() => { if (!roleOpen) { card.hidden = true; card.innerHTML = ""; } }, 450);
+}
+
+peek.addEventListener("click", () => (roleOpen ? closeRole() : openRole()));
+card.addEventListener("click", closeRole);
 
 init();
