@@ -18,7 +18,8 @@ window.CONFIG = {
 	{ who: "Alice", youtubeId: "9Qgna0iuxFQ", description: "Luis says Alice forgot to pancakes are life (or death situation)" },
 	{ who: "Justo", youtubeId: "M2h-9iig97w", description: "Luis says that Justo forgot to mention he has no mercy on the tennis court" },
 	{ who: "Owen", youtubeId: "DowBIEU-F6c", description: "Luis says Owen forgot to mention that he used to play badminton professionally and is quite competitive"  },
-	// { who: "Martyna", youtubeId: "dQw4w9WgXcQ" },
+	{ who: "Martyna", youtubeId: "zZv5618bozM", description: "Luis says Martyna is also learning German and can communicate with secret codes" },
+	{ who: "Eric", youtubeId: "oQWtYZT8ugs", description: "The real Eric is the one at the end of the video" },
 	{ who: "Gabriela", youtubeId: "HdyX_q53xFY", description: "Luis says Gabriela forgot to mention she cannot survive without matcha and can become dangerous" }
   ],
 };
