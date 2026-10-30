@@ -39,6 +39,17 @@ Testing reveals roles to whoever tests. Create a **second, throwaway Supabase pr
 - Win: faithful win when no traitors are left; traitors win when they equal or outnumber the faithful.
 - "Reset game" returns to the lobby and keeps login codes.
 
+## Secret missions
+- A third tab, **Secret Missions**. When the roulette spins, each player is dealt **2 random missions** from the pool. With at least 20 missions in the pool, all 20 dealt are different; with fewer, missions repeat across players (never twice for the same player).
+- Missions stay hidden until the player taps **Show my missions** (they hide again after 20 seconds). Players tick them off themselves. Nobody, including the game master, can see anyone else's missions.
+- The pool starts **empty**; until you add missions, nobody gets any. Add them in the Supabase SQL editor (the pool is not readable by the site):
+  ```sql
+  insert into missions (text) values
+    ('First mission text'),
+    ('Second mission text');
+  ```
+  Add them **before** the roulette spins. Missions are dealt at the spin, not afterwards. To clear the pool: `delete from missions where id > 0;`.
+
 ## Game-night tips
 - Each player holds their own phone and taps the gold "Show my role" button to flip their card (it hides again after a tap or 12 seconds). Couples: turn away from each other.
 - Keep paper slips as a fallback in case the site dies.

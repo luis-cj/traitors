@@ -12,6 +12,7 @@ const store = {
 };
 
 let state = null, lastKey = "", tab = "game";
+let missionsShown = false, missionsTimer = null;   // secret missions are hidden until tapped
 
 // Calls a database function; if the browser has lost its session (permission denied),
 // starts a fresh anonymous session and retries once.
@@ -85,6 +86,7 @@ function render() {
 
   if (!logged) return renderLogin(app);
   if (tab === "videos") return renderVideos(app);
+  if (tab === "missions") return renderMissions(app);
 
   if (state.phase === "reveal" && (+store.get("traitors_spin") || 0) < state.spin_id) {
     store.set("traitors_spin", state.spin_id);
@@ -242,6 +244,30 @@ function tallyHtml() {
   return t.length ? `<div>${t.map((r) => `<div class="tally"><span>${esc(r.name)}</span><b>${r.count}</b></div>`).join("")}</div>` : "";
 }
 
+// ---------- secret missions tab (hidden until tapped, so nobody can read over a shoulder) ----------
+
+function renderMissions(app) {
+  const ms = state.missions || [];
+  const card = (inner) => (app.innerHTML = `<div class="card"><h2>Secret Missions</h2>${inner}</div>`);
+  if (!state.my_role) return card(`<p class="muted">Your missions are dealt when the roulette spins.</p>`);
+  if (!ms.length) return card(`<p class="muted">You have no secret missions this game.</p>`);
+  if (!missionsShown) {
+    return card(`<p>You have ${ms.length} secret missions. Make sure nobody is looking, then tap to reveal.</p>
+      <button class="primary" data-act="showMissions">Show my missions</button>`);
+  }
+  card(`${ms.map((m) => `<label class="mission ${m.done ? "done" : ""}">
+      <input type="checkbox" data-act="mission" data-id="${m.id}" ${m.done ? "checked" : ""}><span>${esc(m.text)}</span></label>`).join("")}
+    <button class="primary" data-act="hideMissions">Hide my missions</button>
+    <p class="muted">They hide again by themselves after 20 seconds. Tick a mission when you have done it.</p>`);
+}
+
+function setMissionsShown(on) {
+  missionsShown = on;
+  clearTimeout(missionsTimer);
+  if (on) missionsTimer = setTimeout(() => setMissionsShown(false), 20000);
+  if (tab === "missions") { lastKey = ""; render(); }
+}
+
 // ---------- videos tab (light gate: speed bump only) ----------
 
 async function sha256(text) {
@@ -288,7 +314,11 @@ function playRoulette() {
 document.addEventListener("click", async (e) => {
   const b = e.target.closest("[data-act],[data-tab]");
   if (!b) return;
-  if (b.dataset.tab) { tab = b.dataset.tab; lastKey = ""; return render(); }
+  if (b.dataset.tab) {
+    tab = b.dataset.tab;
+    if (tab !== "missions") { missionsShown = false; clearTimeout(missionsTimer); }
+    lastKey = ""; return render();
+  }
 
   switch (b.dataset.act) {
     case "login": {
@@ -304,6 +334,9 @@ document.addEventListener("click", async (e) => {
       if (b.dataset.confirm && !confirm(b.dataset.confirm)) return;
       return adminCall("admin_goto", { p_next: b.dataset.next });
     case "lock": return call("lock_vote", { p_lock: b.dataset.lock === "true" });
+    case "showMissions": return setMissionsShown(true);
+    case "hideMissions": return setMissionsShown(false);
+    case "mission": return call("mark_mission", { p_mission: +b.dataset.id, p_done: b.checked });
     case "closeRoulette": $("#roulette").hidden = true; return;
     case "unlock": {
       const h = await sha256($("#vpass").value.trim());

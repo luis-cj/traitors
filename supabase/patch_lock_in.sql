@@ -6,6 +6,7 @@
 --  * dead players become medics who agree on a one-round shield
 --  * Martyna (like Eric) can never be a traitor
 --  * Zu sees a "ready" light when the traitors / medics have all locked in
+--  * secret missions: 2 per player, dealt when the roulette spins (pool is empty until you add missions)
 --  * dead traitors cannot give shields; they advise their living partner at night instead
 
 alter table votes add column if not exists locked boolean not null default false;
@@ -15,6 +16,20 @@ alter table game_state add column if not exists nights int not null default 0;
 alter table game_state add column if not exists banishes int not null default 0;
 alter table game_state add column if not exists shield_id int references players(id) on delete set null;
 update players set can_be_traitor = false where name in ('Eric', 'Martyna');
+
+create table if not exists missions (
+  id   serial primary key,
+  text text not null
+);
+create table if not exists player_missions (
+  player_id  int not null references players(id) on delete cascade,
+  mission_id int not null references missions(id) on delete cascade,
+  done       boolean not null default false,
+  primary key (player_id, mission_id)
+);
+alter table missions enable row level security;
+alter table player_missions enable row level security;
+revoke all on missions, player_missions from anon, authenticated;
 
 create or replace function _night_ready(p_round int) returns boolean
 language plpgsql security definer stable set search_path = public as $$
@@ -60,6 +75,9 @@ begin
     'announcement', g.announcement, 'winner', g.winner, 'tally', g.tally,
     'me', json_build_object('name', me.name, 'is_admin', me.is_admin, 'alive', me.alive),
     'my_role', myrole,
+    -- only my own secret missions
+    'missions', (select coalesce(json_agg(json_build_object('id', mi.id, 'text', mi.text, 'done', pm.done) order by mi.id), '[]'::json)
+                   from player_missions pm join missions mi on mi.id = pm.mission_id where pm.player_id = me.id),
     'medic_count', (select count(*) from players where not alive),
     -- medics who can give shields: dead players who are not traitors
     'shield_medics', (select count(*) from players p join roles r on r.player_id = p.id where not p.alive and r.role <> 'traitor'),
@@ -171,6 +189,16 @@ begin
   if not found then raise exception 'Choose someone first'; end if;
 end $$;
 
+create or replace function mark_mission(p_mission int, p_done boolean default true) returns void
+language plpgsql security definer set search_path = public as $$
+declare me players;
+begin
+  select * into me from players where auth_uid = auth.uid();
+  if not found then raise exception 'not logged in'; end if;
+  update player_missions set done = p_done where player_id = me.id and mission_id = p_mission;
+  if not found then raise exception 'Not your mission'; end if;
+end $$;
+
 create or replace function admin_spin() returns void
 language plpgsql security definer set search_path = public as $$
 begin
@@ -181,6 +209,16 @@ begin
     select p.id, case when p.id in (select id from players where can_be_traitor order by random() limit 2)
                       then 'traitor' else 'faithful' end
       from players p;
+  -- deal 2 missions per player from a shuffled pool: all different when the pool has at least 20,
+  -- otherwise they repeat across players (never twice for the same player unless the pool has 1)
+  delete from player_missions where player_id > 0;
+  insert into player_missions (player_id, mission_id)
+    select s.player_id, m.id
+      from (select p.id as player_id, row_number() over (order by p.id, k) as slot
+              from players p cross join generate_series(1, 2) k) s
+      join (select id, row_number() over (order by random()) as rn, count(*) over () as total from missions) m
+        on m.rn = ((s.slot - 1) % m.total) + 1
+    on conflict do nothing;
   update game_state set phase = 'reveal', round = 0, nights = 0, banishes = 0, shield_id = null,
          spin_id = spin_id + 1, announcement = '', winner = null, tally = '[]' where id = 1;
 end $$;
@@ -314,11 +352,12 @@ language plpgsql security definer set search_path = public as $$
 begin
   perform _require_admin();
   delete from votes where round >= 0;
+  delete from player_missions where player_id > 0;
   delete from roles where player_id > 0;
   update players set alive = true where id > 0;
   update game_state set phase = 'lobby', round = 0, nights = 0, banishes = 0, shield_id = null,
          announcement = '', winner = null, tally = '[]' where id = 1;
 end $$;
 
-revoke execute on function _night_ready(int), _shield_ready(int), lock_vote(boolean), admin_goto(text), admin_advance(boolean) from public, anon, authenticated;
-grant execute on function lock_vote(boolean), admin_goto(text), admin_advance(boolean) to authenticated;
+revoke execute on function _night_ready(int), _shield_ready(int), lock_vote(boolean), mark_mission(int, boolean), admin_goto(text), admin_advance(boolean) from public, anon, authenticated;
+grant execute on function lock_vote(boolean), mark_mission(int, boolean), admin_goto(text), admin_advance(boolean) to authenticated;

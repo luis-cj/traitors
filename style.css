@@ -14,7 +14,7 @@ h1 { margin: 0 0 12px; text-align: center; font-family: Georgia, serif; letter-s
 h2 { margin: 0 0 8px; font-family: Georgia, serif; }
 main { max-width: 520px; margin: 0 auto; }
 nav { display: flex; gap: 8px; }
-nav button { flex: 1; background: none; border: 1px solid var(--line); color: var(--muted); padding: 8px; border-radius: 8px; font: inherit; }
+nav button { flex: 1; font-size: .9rem; padding-left: 4px; padding-right: 4px; background: none; border: 1px solid var(--line); color: var(--muted); padding: 8px; border-radius: 8px; font: inherit; }
 nav button.active { color: var(--text); border-color: var(--accent); }
 .muted { color: var(--muted); }
 .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin: 12px 0; }
@@ -68,3 +68,8 @@ input { width: 100%; padding: 14px; font: inherit; border-radius: 10px; border: 
 /* game master's "ready" light */
 .ready { margin: 12px 0 0; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); color: var(--muted); text-align: center; }
 .ready.yes { border-color: var(--green); color: #9fe0b8; background: #10241a; font-weight: 600; }
+
+/* secret missions */
+.mission { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.mission input { width: 22px; height: 22px; padding: 0; margin: 2px 0 0; flex: none; accent-color: var(--accent); }
+.mission.done span { color: var(--muted); text-decoration: line-through; }

@@ -50,6 +50,18 @@ create table votes (
   primary key (kind, round, voter_id)
 );
 
+-- secret missions: a pool, and 2 missions dealt to each player when the roulette spins
+create table missions (
+  id   serial primary key,
+  text text not null
+);
+create table player_missions (
+  player_id  int not null references players(id) on delete cascade,
+  mission_id int not null references missions(id) on delete cascade,
+  done       boolean not null default false,
+  primary key (player_id, mission_id)
+);
+
 -- ---------- seed ----------
 
 insert into players (name, code, is_admin)
@@ -75,7 +87,9 @@ alter table game_state enable row level security;
 alter table players    enable row level security;
 alter table roles      enable row level security;
 alter table votes      enable row level security;
-revoke all on game_state, players, roles, votes from anon, authenticated;
+alter table missions   enable row level security;
+alter table player_missions enable row level security;
+revoke all on game_state, players, roles, votes, missions, player_missions from anon, authenticated;
 
 -- ---------- helpers (not callable by clients) ----------
 
@@ -162,6 +176,9 @@ begin
     'announcement', g.announcement, 'winner', g.winner, 'tally', g.tally,
     'me', json_build_object('name', me.name, 'is_admin', me.is_admin, 'alive', me.alive),
     'my_role', myrole,
+    -- only my own secret missions
+    'missions', (select coalesce(json_agg(json_build_object('id', mi.id, 'text', mi.text, 'done', pm.done) order by mi.id), '[]'::json)
+                   from player_missions pm join missions mi on mi.id = pm.mission_id where pm.player_id = me.id),
     'medic_count', (select count(*) from players where not alive),
     -- medics who can give shields: dead players who are not traitors
     'shield_medics', (select count(*) from players p join roles r on r.player_id = p.id where not p.alive and r.role <> 'traitor'),
@@ -275,6 +292,17 @@ begin
   if not found then raise exception 'Choose someone first'; end if;
 end $$;
 
+-- A player ticks (or unticks) one of their own missions.
+create function mark_mission(p_mission int, p_done boolean default true) returns void
+language plpgsql security definer set search_path = public as $$
+declare me players;
+begin
+  select * into me from players where auth_uid = auth.uid();
+  if not found then raise exception 'not logged in'; end if;
+  update player_missions set done = p_done where player_id = me.id and mission_id = p_mission;
+  if not found then raise exception 'Not your mission'; end if;
+end $$;
+
 -- ---------- admin (Zu) functions: none of these return role information ----------
 
 -- The roulette: 2 random traitors from the eligible players (couples allowed).
@@ -289,6 +317,16 @@ begin
     select p.id, case when p.id in (select id from players where can_be_traitor order by random() limit 2)
                       then 'traitor' else 'faithful' end
       from players p;
+  -- deal 2 missions per player from a shuffled pool: all different when the pool has at least 20,
+  -- otherwise they repeat across players (never twice for the same player unless the pool has 1)
+  delete from player_missions where player_id > 0;
+  insert into player_missions (player_id, mission_id)
+    select s.player_id, m.id
+      from (select p.id as player_id, row_number() over (order by p.id, k) as slot
+              from players p cross join generate_series(1, 2) k) s
+      join (select id, row_number() over (order by random()) as rn, count(*) over () as total from missions) m
+        on m.rn = ((s.slot - 1) % m.total) + 1
+    on conflict do nothing;
   update game_state set phase = 'reveal', round = 0, nights = 0, banishes = 0, shield_id = null,
          spin_id = spin_id + 1, announcement = '', winner = null, tally = '[]' where id = 1;
 end $$;
@@ -425,6 +463,7 @@ language plpgsql security definer set search_path = public as $$
 begin
   perform _require_admin();
   delete from votes where round >= 0;
+  delete from player_missions where player_id > 0;
   delete from roles where player_id > 0;
   update players set alive = true where id > 0;
   update game_state set phase = 'lobby', round = 0, nights = 0, banishes = 0, shield_id = null,
@@ -434,7 +473,7 @@ end $$;
 -- ---------- permissions ----------
 
 revoke execute on all functions in schema public from public, anon, authenticated;
-grant execute on function claim_player(text), get_state(), cast_vote(text, text), lock_vote(boolean),
+grant execute on function claim_player(text), get_state(), cast_vote(text, text), lock_vote(boolean), mark_mission(int, boolean),
                           admin_spin(), admin_goto(text), admin_advance(boolean), admin_reset() to authenticated;
 
 -- To get everyone's login code (safe: no roles in this query):
