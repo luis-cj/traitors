@@ -280,7 +280,7 @@ function pumpkinListHtml() {
 }
 
 function renderPumpkin(app) {
-  app.innerHTML = `<div class="card"><h2>Pumpkin Awards</h2>
+  app.innerHTML = `<div class="card"><h2>Pumpkin of Appreciation</h2>
       <p>Someone looks good today, someone handled a failure at laser tag graciously, created great arguments at round table or made a particularly funny joke? Express it here anonymously.</p>
       <p class="muted">Everyone can read the messages, but nobody can see who sent them.</p>
       <textarea id="pumpkinText" maxlength="500" placeholder="Write your message…"></textarea>
